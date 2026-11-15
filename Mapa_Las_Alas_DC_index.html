@@ -1,0 +1,108 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
+  <meta name="theme-color" content="#f3eff0">
+  <title>Las Alas DC | Encuentra tu sede</title>
+  <link href="https://api.mapbox.com/mapbox-gl-js/v3.9.4/mapbox-gl.css" rel="stylesheet">
+  <script src="https://api.mapbox.com/mapbox-gl-js/v3.9.4/mapbox-gl.js"></script>
+  <style>
+    :root{--ink:#242633;--muted:#777b89;--cream:#fffdfb;--accent:#a94e2b;--lilac:#c9c9df}
+    *{box-sizing:border-box} html,body{height:100%;width:100%;margin:0;overflow:hidden}
+    body{font-family:Arial,Helvetica,sans-serif;color:var(--ink);background:#f3eff0}
+    #map{position:absolute;inset:0;background:#eeeaf0}
+    .topbar{position:absolute;z-index:5;top:calc(env(safe-area-inset-top,0px) + 14px);left:16px;right:16px;display:flex;align-items:center;justify-content:space-between;pointer-events:none}
+    .brand,.locate{pointer-events:auto;border:0;background:rgba(255,255,255,.96);box-shadow:0 3px 14px #35364a20;border-radius:999px;height:52px}
+    .brand{display:flex;align-items:center;gap:10px;padding:6px 17px 6px 7px;font-weight:700;font-size:14px;letter-spacing:.01em}
+    .brand-mark{width:38px;height:38px;border-radius:50%;background:#a94e2b;color:white;display:grid;place-items:center;font-size:21px}
+    .locate{width:52px;font-size:22px;display:grid;place-items:center;cursor:pointer}
+    .map-note{position:absolute;z-index:4;top:82px;left:50%;transform:translateX(-50%);white-space:nowrap;background:#ffffffdc;border-radius:20px;padding:8px 14px;font-size:12px;color:#606477;box-shadow:0 2px 10px #30304414}
+    .bottom-sheet{position:absolute;z-index:6;left:0;right:0;bottom:0;padding:12px 15px calc(env(safe-area-inset-bottom,0px) + 14px);background:linear-gradient(180deg,transparent 0%,#f2eff3a8 13%,#f2eff3 38%);}
+    .sheet-handle{height:4px;width:42px;background:#c7c5ce;border-radius:9px;margin:0 auto 12px}
+    .sheet-head{display:flex;justify-content:space-between;align-items:center;margin:0 4px 10px}
+    .sheet-head strong{font-size:16px}.sheet-head span{font-size:12px;color:var(--muted)}
+    .cards{display:flex;gap:10px;overflow-x:auto;padding:1px 1px 8px;scroll-snap-type:x mandatory;scrollbar-width:none}
+    .cards::-webkit-scrollbar{display:none}
+    .place-card{flex:0 0 min(84vw,340px);display:flex;gap:12px;align-items:center;text-align:left;border:1px solid #e8e4e8;background:rgba(255,255,255,.97);border-radius:24px;padding:11px;box-shadow:0 5px 20px #35364a16;cursor:pointer;scroll-snap-align:start;color:var(--ink);min-height:104px}
+    .food-thumb{flex:0 0 76px;height:76px;border-radius:17px;background:linear-gradient(145deg,#f5d8bf,#a94e2b);display:grid;place-items:center;font-size:35px}
+    .card-copy{min-width:0}.card-copy b{display:block;font-size:15px;margin-bottom:5px}.card-copy small{display:block;color:#626575;font-size:12px;line-height:1.45}.card-copy .sub{color:#4c8b65;font-weight:600}
+    .search-pill{display:flex;align-items:center;gap:10px;margin:5px auto 0;max-width:520px;height:52px;border-radius:28px;background:#fff;padding:0 18px;box-shadow:0 4px 18px #34344915;color:#92939c;font-size:14px}
+    .search-pill span:last-child{margin-left:auto;font-size:20px;color:#30313a}
+    .status{font-size:11px;text-align:center;color:#777987;margin-top:7px}
+    .wing-marker{width:44px;height:44px;border-radius:50%;background:#fff;border:1px solid #e8e3e5;box-shadow:0 3px 12px #25253630;display:grid;place-items:center;font-size:23px;cursor:pointer}
+    .mapboxgl-ctrl-top-right{top:82px;right:16px}.mapboxgl-ctrl-group{border-radius:18px!important;overflow:hidden;box-shadow:0 3px 12px #25253620!important}
+    .mapboxgl-popup-content{border-radius:17px;padding:13px 16px;font-family:Arial,sans-serif;box-shadow:0 5px 20px #25253625}.mapboxgl-popup-content strong{display:block;margin-bottom:5px;font-size:14px}.mapboxgl-popup-content span{font-size:12px;color:#676978}
+    @media(min-width:760px){.topbar{left:28px;right:28px}.bottom-sheet{left:28px;right:auto;bottom:22px;width:min(390px,calc(100vw - 56px));padding:15px;background:transparent}.cards{display:block}.place-card{width:100%;margin-bottom:9px;min-height:90px}.food-thumb{height:65px;flex-basis:65px}.sheet-head{background:#fff;border-radius:18px;padding:12px 15px}.search-pill{display:none}.map-note{top:82px}}
+  </style>
+</head>
+<body>
+  <div id="map" aria-label="Mapa interactivo de las tres sedes de Las Alas DC en Bogotá"></div>
+  <div class="topbar">
+    <div class="brand"><span class="brand-mark">🍗</span><span>LAS ALAS DC<br><small style="font-weight:400;color:#777b89">Sazón costeño × venezolano</small></span></div>
+    <button class="locate" id="locate" aria-label="Mi ubicación" title="Mi ubicación">➤</button>
+  </div>
+  <div class="map-note">Encuentra tu sede más cercana</div>
+  <section class="bottom-sheet" aria-label="Sedes de Las Alas DC">
+    <div class="sheet-handle"></div>
+    <div class="sheet-head"><strong>Nuestras sedes</strong><span>BOGOTÁ · 3 UBICACIONES</span></div>
+    <div class="cards" id="cards">
+      <button class="place-card" data-place="0"><span class="food-thumb">🍗</span><span class="card-copy"><b>Las Alas DC – San Felipe</b><small>Calle 74A #22-07</small><small class="sub">Ver ubicación · Cómo llegar ↗</small></span></button>
+      <button class="place-card" data-place="1"><span class="food-thumb">🍗</span><span class="card-copy"><b>Las Alas DC – Park Way</b><small>Carrera 25 #41-24</small><small class="sub">Ver ubicación · Cómo llegar ↗</small></span></button>
+      <button class="place-card" data-place="2"><span class="food-thumb">🍗</span><span class="card-copy"><b>Las Alas DC – Chapinero</b><small>Carrera 9 #52A-46</small><small class="sub">Ver ubicación · Cómo llegar ↗</small></span></button>
+    </div>
+    <div class="search-pill"><span>⌕</span><span>Explora las sedes en el mapa</span><span>☰</span></div>
+    <div class="status" id="status">Cargando las ubicaciones…</div>
+  </section>
+<script>
+  mapboxgl.accessToken = "pk.eyJ1IjoibGlsY3V0aWVib293eSIsImEiOiJjbXdoMmxmOTQwNWhrMnpvcmk1dDdtYmZmIn0.DzBR5hsc_TdUVJeMuK3CJg";
+  const locations = [
+    {name:"Las Alas DC – San Felipe", address:"Calle 74A #22-07, Bogotá, Colombia", query:"Calle 74A #22-07 Bogotá Colombia"},
+    {name:"Las Alas DC – Park Way", address:"Carrera 25 #41-24, Bogotá, Colombia", query:"Carrera 25 #41-24 Bogotá Colombia"},
+    {name:"Las Alas DC – Chapinero", address:"Carrera 9 #52A-46, Bogotá, Colombia", query:"Carrera 9 #52A-46 Bogotá Colombia"}
+  ];
+  const map = new mapboxgl.Map({container:"map",style:"mapbox://styles/mapbox/light-v11",center:[-74.072,4.635],zoom:12.2,attributionControl:true});
+  map.addControl(new mapboxgl.NavigationControl({showCompass:false}),"top-right");
+  const markers=[];
+  function pastelize(){
+    const paint=(id,prop,val)=>{try{if(map.getLayer(id))map.setPaintProperty(id,prop,val)}catch(e){}};
+    paint("background","background-color","#f1eef1");
+    paint("water","fill-color","#dce8ee");
+    paint("landuse","fill-color","#f4eff0");
+    paint("landuse-park","fill-color","#c9e9bd");
+    paint("landuse-park-outline","line-color","#b9dfae");
+    paint("road-street","line-color","#c9c9dc");
+    paint("road-street-low","line-color","#d2d1df");
+    paint("road-secondary-tertiary","line-color","#d1cede");
+    paint("road-primary","line-color","#eadfcf");
+    paint("road-motorway-trunk","line-color","#aaaac7");
+    paint("road-label","text-color","#626477");
+    paint("place-label","text-color","#5d6070");
+  }
+  map.on("style.load",pastelize);
+  function focusPlace(i){const p=locations[i];const m=markers[i];if(!m)return;map.flyTo({center:m.getLngLat(),zoom:15.3,duration:900,essential:true});m.togglePopup();}
+  async function addLocations(){
+    const bounds=new mapboxgl.LngLatBounds();let count=0;
+    for(let i=0;i<locations.length;i++){
+      const place=locations[i];
+      try{
+        const url="https://api.mapbox.com/geocoding/v5/mapbox.places/"+encodeURIComponent(place.query)+".json?country=co&limit=1&proximity=-74.072,4.635&access_token="+encodeURIComponent(mapboxgl.accessToken);
+        const response=await fetch(url);if(!response.ok)throw new Error("Geocoding HTTP "+response.status);
+        const data=await response.json();if(!data.features||!data.features.length)continue;
+        const coords=data.features[0].center;
+        const popup=new mapboxgl.Popup({offset:25,closeButton:true}).setHTML("<strong>"+place.name+"</strong><span>"+place.address+"</span><br><a style='display:inline-block;margin-top:9px;color:#a94e2b;font-weight:bold;text-decoration:none' target='_blank' rel='noopener' href='https://www.google.com/maps/search/?api=1&query="+encodeURIComponent(place.query)+"'>Cómo llegar ↗</a>");
+        const el=document.createElement("div");el.className="wing-marker";el.textContent="🍗";el.setAttribute("aria-label",place.name);
+        const marker=new mapboxgl.Marker({element:el,anchor:"bottom"}).setLngLat(coords).setPopup(popup).addTo(map);
+        markers[i]=marker;el.addEventListener("click",()=>{document.querySelectorAll(".place-card").forEach(c=>c.style.outline="none");document.querySelector('[data-place="'+i+'"]').style.outline="2px solid #b66a48"});
+        bounds.extend(coords);count++;
+      }catch(e){console.error("No se pudo ubicar",place.address,e)}
+    }
+    document.getElementById("status").textContent=count===3?"Las tres sedes están señaladas en el mapa.":"Se ubicaron "+count+" de 3 sedes. Revisa las direcciones en Mapbox.";
+    if(count>0)map.fitBounds(bounds,{padding:{top:120,bottom:250,left:55,right:55},maxZoom:14.2,duration:700});
+  }
+  map.on("load",addLocations);
+  document.querySelectorAll(".place-card").forEach(card=>card.addEventListener("click",()=>{const i=Number(card.dataset.place);focusPlace(i);window.open("https://www.google.com/maps/search/?api=1&query="+encodeURIComponent(locations[i].query),"_blank","noopener")}));
+  document.getElementById("locate").addEventListener("click",()=>{if(!navigator.geolocation){alert("Tu navegador no permite obtener la ubicación.");return}navigator.geolocation.getCurrentPosition(pos=>map.flyTo({center:[pos.coords.longitude,pos.coords.latitude],zoom:15}),()=>alert("No fue posible obtener tu ubicación. Revisa los permisos del navegador."),{enableHighAccuracy:true,timeout:10000})});
+</script>
+</body>
+</html>
